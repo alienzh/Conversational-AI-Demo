@@ -204,6 +204,11 @@ class CovLivingActivity : DebugSupportActivity<CovActivityLivingBinding>() {
             clTop.setOnMoreClickListener {
                 showSettingDialog(CovAgentTabDialog.Companion.TAB_CHANNEL_INFO) // Channel Info tab
             }
+            clTop.updateMetricsToggleChecked(CovAgentManager.isRealtimeDataEnabled)
+            clTop.updateMetricsToggleVisible(false)
+            clTop.setOnMetricsToggleChangeListener { enable ->
+                handleMetricsToggle(enable)
+            }
             // Set click listener for btn_image_container with dynamic functionality
             clBottomLogged.setOnImageContainerClickListener {
                 val isPublishVideo = viewModel.isPublishVideo.value
@@ -709,6 +714,7 @@ class CovLivingActivity : DebugSupportActivity<CovActivityLivingBinding>() {
 
     private fun updateMessageList(isShowMessageList: Boolean) {
         mBinding?.apply {
+            clTop.updateMetricsToggleVisible(isShowMessageList && !isSelfSubRender)
             if (isShowMessageList) {
                 layoutMessage.isVisible = true
                 if (isSelfSubRender) {
@@ -999,9 +1005,7 @@ class CovLivingActivity : DebugSupportActivity<CovActivityLivingBinding>() {
             }
 
             override fun onMetricsEnable(enable: Boolean) {
-                // Handle metrics toggle
                 CovLogger.d(TAG, "Metrics enabled: $enable")
-
                 ToastUtil.show("onMetricsEnable: $enable")
             }
 
@@ -1024,6 +1028,16 @@ class CovLivingActivity : DebugSupportActivity<CovActivityLivingBinding>() {
             override fun onAudioParameter(parameter: String) {
                 CovRtcManager.setParameter(parameter)
             }
+        }
+    }
+
+    private fun handleMetricsToggle(enable: Boolean, showToast: Boolean = false) {
+        CovAgentManager.setRealtimeDataEnabled(enable)
+        mBinding?.clTop?.updateMetricsToggleChecked(enable)
+        mBinding?.messageListViewV2?.setLatencyMetricsVisible(enable)
+        CovLogger.d(TAG, "Metrics enabled: $enable")
+        if (showToast) {
+            ToastUtil.show("onMetricsEnable: $enable")
         }
     }
 
