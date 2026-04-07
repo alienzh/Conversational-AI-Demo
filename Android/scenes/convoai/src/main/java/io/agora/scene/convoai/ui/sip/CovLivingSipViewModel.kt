@@ -100,8 +100,12 @@ class CovLivingSipViewModel : ViewModel() {
             _interruptEvent.value = event
         }
 
-        override fun onAgentMetrics(agentUserId: String, metrics: Metric) {
+        override fun onAgentMetrics(agentUserId: String, metric: Metric) {
             // Handle metrics
+        }
+
+        override fun onTurnFinished(agentUserId: String, turn: Turn) {
+            // Handle turn finished
         }
 
         override fun onAgentError(agentUserId: String, error: ModuleError) {
@@ -117,7 +121,7 @@ class CovLivingSipViewModel : ViewModel() {
             _transcriptUpdate.value = transcript
         }
 
-        override fun onMessageReceiptUpdated(agentUserId: String, messageReceipt: MessageReceipt) {
+        override fun onMessageReceiptUpdated(agentUserId: String, receipt: MessageReceipt) {
         }
 
         override fun onAgentVoiceprintStateChanged(agentUserId: String, event: VoiceprintStateChangeEvent) {

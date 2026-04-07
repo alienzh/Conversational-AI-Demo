@@ -383,7 +383,7 @@ class CovLivingActivity : DebugSupportActivity<CovActivityLivingBinding>() {
             }
         }
         lifecycleScope.launch {   // Observe agent RTC join state
-            viewModel.isAgentJoinedRtc.collect { joined ->
+            viewModel.isAgentJoinedRtc.collect { _ ->
                 // TODO:
             }
         }
@@ -449,8 +449,19 @@ class CovLivingActivity : DebugSupportActivity<CovActivityLivingBinding>() {
                 }
             }
         }
+        lifecycleScope.launch {  // Observe turn finished metrics updates
+            viewModel.turnFinishedMetricsState.collect { turnFinishedState ->
+                if (isSelfSubRender) return@collect
+                turnFinishedState?.let {
+                    mBinding?.messageListViewV2?.updateLatencyMetrics(
+                        turnId = it.turn.turnId,
+                        metrics = it.toSubtitleMetricsUiModel()
+                    )
+                }
+            }
+        }
         lifecycleScope.launch {  // Observe interrupt event updates
-            viewModel.interruptEvent.collect { interruptEvent ->
+            viewModel.interruptEvent.collect { _ ->
                 if (isSelfSubRender) return@collect
                 // nothing
             }
