@@ -63,6 +63,8 @@
     <string name="cov_setting_ai_vad1">IIH</string>
     <string name="cov_setting_ai_vad_high">Intelligent Interruption Handling\n(IIH)</string>
     <string name="cov_setting_ai_vad_high_desc">This feature makes AI better understand you and reduces false interruption.</string>
+    <string name="cov_setting_ai_pause">Smart Pause</string>
+    <string name="cov_setting_ai_pause_desc">This feature enables the agent to pause logical reasoning temporarily to handle other tasks and resume right from where it was interrupted.</string>
     <string name="cov_setting_network_error">Network Error!</string>
     <string name="cov_agent_connecting">Connecting…</string>
     <string name="cov_copy_succeed">Copied</string>

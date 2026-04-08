@@ -40,6 +40,7 @@ object CovAgentManager {
         set(value) {
             field = value
             enableAiVad = value?.aivad_enabled_by_default ?: false
+            enableAiPause = value?.aipause_enabled_by_default ?: false
         }
 
     var avatar: CovAvatar? = null
@@ -48,6 +49,9 @@ object CovAgentManager {
     var renderMode: Int = CovRenderMode.WORD
 
     var enableAiVad = false
+
+    var enableAiPause = false
+
     val enableBHVS get() = voiceprintMode == VoiceprintMode.OFF
 
     // Preset change reminder setting, follows app lifecycle
@@ -133,6 +137,7 @@ object CovAgentManager {
 
     fun resetData() {
         enableAiVad = false
+        enableAiPause = false
         preset = null
         language = null
         avatar = null
