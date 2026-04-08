@@ -44,6 +44,9 @@
     <string name="cov_info_logout">Log Out</string>
     <string name="cov_info_more">More Actions</string>
     <string name="cov_info_uploader">Quick Report</string>
+    <string name="cov_info_call_data">Call Data</string>
+    <string name="cov_info_data_report">Data report</string>
+    <string name="cov_info_report_generate_tip">Generated after the call ends</string>
 
     <string name="cov_setting_title">Agent Settings</string>
     <string name="cov_setting_agent">AGENT</string>
