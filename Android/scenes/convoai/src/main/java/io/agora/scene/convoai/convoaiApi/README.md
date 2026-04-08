@@ -52,6 +52,9 @@ Follow these steps to quickly integrate and use the ConversationalAI API:
    ```kotlin
    api.addHandler(object : IConversationalAIAPIEventHandler {
        override fun onAgentStateChanged(agentUserId: String, event: StateChangeEvent) { /* ... */ }
+       override fun onAgentListeningChanged(agentUserId: String, isListening: Boolean) { /* ... */ }
+       override fun onAgentThinkingChanged(agentUserId: String, isThinking: Boolean) { /* ... */ }
+       override fun onAgentSpeakingChanged(agentUserId: String, isSpeaking: Boolean) { /* ... */ }
        override fun onAgentInterrupted(agentUserId: String, event: InterruptEvent) { /* ... */ }
        override fun onAgentMetrics(agentUserId: String, metric: Metric) { /* ... */ }
        override fun onTurnFinished(agentUserId: String, turn: Turn) { /* ... */ }
@@ -74,6 +77,8 @@ Follow these steps to quickly integrate and use the ConversationalAI API:
        }
    }
    ```
+
+   After subscription succeeds, the component automatically calls `whoNow` once to backfill the current Presence states in the channel, so the latest agent status is not missed if it was published before subscription.
 
 5. **(Optional) Set audio parameters before joining RTC channel**
 
@@ -320,6 +325,9 @@ Notes:
 
 - **All event callbacks are on the main thread.**  
   You can safely update UI in your event handlers.
+
+- **Presence State Backfill:**
+  After subscription succeeds, the component queries current Presence states with `whoNow` and dispatches the same state callbacks for the agents already in the channel.
 
 - **Message Send Status Confirmation:**
     - The `chat` interface completion callback only indicates whether the send request was successful, not the actual message processing status

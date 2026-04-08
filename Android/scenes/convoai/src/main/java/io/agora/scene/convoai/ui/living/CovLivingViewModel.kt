@@ -183,6 +183,18 @@ class CovLivingViewModel : ViewModel() {
             _agentState.value = event.state
         }
 
+        override fun onAgentListeningChanged(agentUserId: String, isListening: Boolean) {
+            CovLogger.d(TAG, "onAgentListeningChanged user:$agentUserId isListening:$isListening")
+        }
+
+        override fun onAgentThinkingChanged(agentUserId: String, isThinking: Boolean) {
+            CovLogger.d(TAG, "onAgentThinkingChanged user:$agentUserId isThinking:$isThinking")
+        }
+
+        override fun onAgentSpeakingChanged(agentUserId: String, isSpeaking: Boolean) {
+            CovLogger.d(TAG, "onAgentSpeakingChanged user:$agentUserId isSpeaking:$isSpeaking")
+        }
+
         override fun onAgentInterrupted(agentUserId: String, event: InterruptEvent) {
             // Handle interruption
             _interruptEvent.value = event
