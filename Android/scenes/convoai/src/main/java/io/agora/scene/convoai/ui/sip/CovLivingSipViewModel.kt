@@ -17,6 +17,7 @@ import io.agora.scene.common.net.TokenGenerator
 import io.agora.scene.common.net.TokenGeneratorType
 import io.agora.scene.common.util.toast.ToastUtil
 import android.widget.Toast
+import io.agora.scene.common.util.TimeUtils
 import io.agora.scene.convoai.R
 import io.agora.scene.convoai.api.CallSipStatus
 import io.agora.scene.convoai.ui.living.metrics.LatencyMetricsManager
@@ -88,6 +89,7 @@ class CovLivingSipViewModel : ViewModel() {
             ConversationalAIAPIConfig(
                 rtcEngine = rtcEngine,
                 rtmClient = rtmClient,
+                renderMode = TranscriptRenderMode.Text,
                 enableLog = true
             )
         )
@@ -260,6 +262,35 @@ class CovLivingSipViewModel : ViewModel() {
     fun toggleMessageList() {
         _isShowMessageList.value = !_isShowMessageList.value
     }
+
+
+    fun reportLatencyMetricsIfNeeded(onCompleted: ((Boolean) -> Unit)? = null) {
+        val presetName = latencyMetricsPresetName ?: resolveLatencyMetricsPresetName()
+        if (presetName.isNullOrEmpty()) {
+            onCompleted?.invoke(false)
+            return
+        }
+        val data = latencyMetricsManager.fetch(presetName)
+        if (data == null || data.turns.isEmpty()) {
+            onCompleted?.invoke(false)
+            return
+        }
+        CovAgentApiManager.reportLatencyMock(presetName, data) { error, latencyId ->
+            if (error == null && !latencyId.isNullOrEmpty()) {
+                latencyMetricsManager.updateReportInfo(
+                    presetName = presetName,
+                    latencyId = latencyId,
+                    reportedAtMs = TimeUtils.currentTimeMillis()
+                )
+                CovLogger.d(TAG, "Stored SIP mock latency report for preset=$presetName")
+                onCompleted?.invoke(true)
+            } else {
+                CovLogger.w(TAG, "SIP reportLatencyMock failed: ${error?.message}")
+                onCompleted?.invoke(false)
+            }
+        }
+    }
+
 
     // RTC event handling
     fun handleRtcEvents(): IRtcEngineEventHandler {
