@@ -130,6 +130,11 @@ class CovLivingSipActivity : DebugSupportActivity<CovActivityLivingSipBinding>()
             clTop.setOnBackClickListener {
                 finish()
             }
+            clTop.updateRealtimeDataToggleChecked(CovAgentManager.isRealtimeDataEnabled)
+            clTop.updateRealtimeDataToggleVisible(false)
+            clTop.setOnRealtimeDataToggleChangeListener { enable ->
+                handleRealtimeDataToggle(enable)
+            }
         }
     }
 
@@ -163,6 +168,7 @@ class CovLivingSipActivity : DebugSupportActivity<CovActivityLivingSipBinding>()
             viewModel.isShowMessageList.collect { isShow ->
                 mBinding?.apply {
                     layoutMessage.isVisible = isShow
+                    clTop.updateRealtimeDataToggleVisible(isShow)
                     clTop.updateTitleWithAnimation(viewModel.isAlreadyConnected && isShow)
                 }
             }
@@ -171,6 +177,16 @@ class CovLivingSipActivity : DebugSupportActivity<CovActivityLivingSipBinding>()
             viewModel.transcriptUpdate.collect { transcript ->
                 transcript?.let {
                     mBinding?.messageListViewV2?.onTranscriptUpdated(it, false)
+                }
+            }
+        }
+        lifecycleScope.launch {  // Observe turn finished metrics updates
+            viewModel.turnFinishedMetricsState.collect { turnFinishedState ->
+                turnFinishedState?.let {
+                    mBinding?.messageListViewV2?.updateLatencyMetrics(
+                        turnId = it.turn.turnId,
+                        metrics = it.toSubtitleMetricsUiModel()
+                    )
                 }
             }
         }
@@ -274,9 +290,7 @@ class CovLivingSipActivity : DebugSupportActivity<CovActivityLivingSipBinding>()
             }
 
             override fun onMetricsEnable(enable: Boolean) {
-                // Handle metrics toggle
                 CovLogger.d(TAG, "Metrics enabled: $enable")
-
                 ToastUtil.show("onMetricsEnable: $enable")
             }
 
@@ -297,6 +311,16 @@ class CovLivingSipActivity : DebugSupportActivity<CovActivityLivingSipBinding>()
             override fun onAudioParameter(parameter: String) {
                 CovRtcManager.setParameter(parameter)
             }
+        }
+    }
+
+    private fun handleRealtimeDataToggle(enable: Boolean, showToast: Boolean = false) {
+        CovAgentManager.setRealtimeDataEnabled(enable)
+        mBinding?.clTop?.updateRealtimeDataToggleChecked(enable)
+        mBinding?.messageListViewV2?.setLatencyMetricsVisible(enable)
+        CovLogger.d(TAG, "SIP realtime data enabled: $enable")
+        if (showToast) {
+            ToastUtil.show("onRealtimeDataToggle: $enable")
         }
     }
 
