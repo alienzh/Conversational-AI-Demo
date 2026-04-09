@@ -5,3 +5,5 @@
 common/base/sdk-*/
 /app/release/
 .vscode
+
+PROJECT_STATE.md
