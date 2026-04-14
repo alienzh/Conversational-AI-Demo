@@ -23,7 +23,7 @@ enum class AgentConnectionState() {
 /**
  * Voiceprint lock modes
  */
-enum class VoiceprintMode{
+enum class VoiceprintMode {
     OFF,
     SEAMLESS,
     PERSONALIZED
@@ -39,8 +39,16 @@ object CovAgentManager {
     var language: CovAgentLanguage? = null
         set(value) {
             field = value
-            enableAiVad = value?.aivad_enabled_by_default ?: false
-            enableAiPause = value?.aipause_enabled_by_default ?: false
+            enableAiVad = if (preset?.isCustom == true) {
+                true
+            } else {
+                language?.aivad_enabled_by_default ?: true
+            }
+            enableAiPause = if (enableAiVad) {
+                value?.aipause_enabled_by_default ?: false
+            } else {
+                false
+            }
         }
 
     var avatar: CovAvatar? = null
@@ -49,8 +57,20 @@ object CovAgentManager {
     var renderMode: Int = CovRenderMode.WORD
 
     var enableAiVad = false
-
+        set(value) {
+            field = value
+            if (!value) {
+                enableAiPause = false
+            }
+        }
     var enableAiPause = false
+        set(value) {
+            field = if (enableAiVad) {
+                value
+            } else {
+                false
+            }
+        }
 
     val enableBHVS get() = voiceprintMode == VoiceprintMode.OFF
 
@@ -98,6 +118,18 @@ object CovAgentManager {
     fun getPreset(): CovAgentPreset? {
         return preset
     }
+
+    val isAiVadSupported: Boolean
+        get() {
+            return if (preset?.isCustom == true) {
+                true
+            } else {
+                language?.aivad_supported ?: false
+            }
+        }
+
+    val isAiPauseAdjustable: Boolean get() = isAiVadSupported && enableAiVad
+
 
     fun getAvatars(): List<CovAvatar> {
         if (isOpenSource) {
@@ -165,7 +197,11 @@ object CovAgentManager {
 
     val isMetricsEnabled: Boolean get() = DebugConfigSettings.isMetricsEnabled
 
-    val isRealtimeDataEnabled: Boolean get() = LocalStorageUtil.getBoolean(REAL_TIME_DATA_ENABLED, false)
+    val isRealtimeDataEnabled: Boolean
+        get() = LocalStorageUtil.getBoolean(
+            REAL_TIME_DATA_ENABLED,
+            false
+        )
 
     fun setRealtimeDataEnabled(enabled: Boolean) {
         LocalStorageUtil.putBoolean(REAL_TIME_DATA_ENABLED, enabled)
