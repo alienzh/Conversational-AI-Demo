@@ -107,7 +107,7 @@ class Message {
     }
 
     var shouldShowLatencyMetrics: Bool {
-        !isMine && latencyInfo != nil && AppContext.settingManager().latencyMetricsVisible && AppContext.settingManager().supportsLatencyMetricsDisplay
+        !isMine && latencyInfo != nil && AppContext.settingManager().latencyMetricsVisible
     }
 }
 
@@ -153,6 +153,5 @@ extension ChatMessageViewModel: AgentSettingDelegate {
         displayMode = mode
     }
 }
-
 
 
