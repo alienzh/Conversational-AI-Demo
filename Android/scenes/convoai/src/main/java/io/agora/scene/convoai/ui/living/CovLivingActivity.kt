@@ -719,7 +719,7 @@ class CovLivingActivity : DebugSupportActivity<CovActivityLivingBinding>() {
 
     private fun updateMessageList(isShowMessageList: Boolean) {
         mBinding?.apply {
-            clTop.updateRealtimeDataToggleVisible(isShowMessageList && !isSelfSubRender)
+            clTop.updateRealtimeDataToggleVisible(isShowMessageList)
             if (isShowMessageList) {
                 layoutMessage.isVisible = true
                 if (isSelfSubRender) {
