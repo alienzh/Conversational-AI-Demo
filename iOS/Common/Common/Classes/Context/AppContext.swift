@@ -13,6 +13,18 @@ import FirebaseCore
     
     public let termsOfServiceUrl: String = "https://www.agora.io/en/terms-of-service/"
     public let privacyUrl: String = "https://www.agora.io/en/privacy-policy/"
+    public var latencyDataReportPageBaseUrl: String {
+        if _baseServerUrl.contains("staging") {
+            return "https://staging-convoai-global.la3.agoralab.co/reports/"
+        }
+        if _baseServerUrl.contains("dev") {
+            return "https://dev-convoai-global.la3.agoralab.co/reports/"
+        }
+        if _baseServerUrl.contains("test") {
+            return "https://testing-convoai-global.la3.agoralab.co/reports/"
+        }
+        return "https://conversational-ai.agora.io/reports/"
+    }
     public let personalReportInfoUrl: String = "https://fullapp.oss-cn-beijing.aliyuncs.com/convoai/personal_info/manifest-dev/ConvoAI/index.html"
     public let sharedInfoUrl: String = "https://fullapp.oss-cn-beijing.aliyuncs.com/convoai/libraries.html"
     public let logoffUrl: String = "https://console.shengwang.cn/settings/security"

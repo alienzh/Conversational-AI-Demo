@@ -142,6 +142,20 @@ extension SipSettingViewController: ChannelInfoViewDelegate {
     func channelInfoViewDidTapFeedback(_ view: ChannelInfoView) {
         // Feedback logic is handled inside ChannelInfoView
     }
+
+    func channelInfoViewDidTapDataReport(_ view: ChannelInfoView) {
+        guard let latestSession = LatencyMetricsManager.shared.fetchLatest() else {
+            return
+        }
+
+        guard let reportUrl = latestSession.resolvedReportUrl(baseUrl: AppContext.shared.latencyDataReportPageBaseUrl) else {
+            return
+        }
+
+        let webViewVC = BaseWebViewController()
+        webViewVC.url = reportUrl
+        navigationController?.pushViewController(webViewVC)
+    }
 }
 
 // MARK: - Creations
