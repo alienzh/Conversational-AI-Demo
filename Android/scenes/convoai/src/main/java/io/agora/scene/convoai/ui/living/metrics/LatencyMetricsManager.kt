@@ -1,5 +1,6 @@
 package io.agora.scene.convoai.ui.living.metrics
 
+import io.agora.scene.common.constant.ServerConfig
 import io.agora.scene.common.util.GsonTools
 import io.agora.scene.common.util.LocalStorageUtil
 import io.agora.scene.convoai.convoaiApi.Turn
@@ -126,12 +127,39 @@ class LatencyMetricsManager internal constructor(
         itemClass = AgentLatencyData::class.java
     )
 ) {
+
+    private fun scopedPresetKey(presetName: String): String {
+        return "${currentEnvScope()}::$presetName"
+    }
+
+    private fun currentEnvScope(): String {
+        val host = ServerConfig.toolBoxUrl.lowercase()
+        return when {
+            host.contains("testing") || host.contains("test") -> "test"
+            host.contains("staging") -> "staging"
+            host.contains("dev") -> "dev"
+            else -> "prod"
+        }
+    }
+
+    private fun isCurrentEnvScopedKey(key: String): Boolean {
+        return key.startsWith("${currentEnvScope()}::")
+    }
+
+    private fun stripScope(key: String): String {
+        return key.substringAfter("::", key)
+    }
+
+    /**
+     * Starts or resets the latency metrics session for the given preset in the current environment scope.
+     */
     fun startSession(presetName: String, callStartAtMs: Long?, agentId: String) {
         if (presetName.isBlank()) {
             return
         }
+        val scopedKey = scopedPresetKey(presetName)
         cache.save(
-            presetName,
+            scopedKey,
             AgentLatencyData(
                 turns = mutableListOf(),
                 turnTranscriptions = mutableMapOf(),
@@ -142,15 +170,19 @@ class LatencyMetricsManager internal constructor(
         )
     }
 
+    /**
+     * Appends a finished turn into the current environment-scoped metrics session for the preset.
+     */
     fun append(presetName: String, turn: Turn) {
         if (presetName.isBlank()) {
             return
         }
-        val currentData = cache.fetch(presetName)
+        val scopedKey = scopedPresetKey(presetName)
+        val currentData = cache.fetch(scopedKey)
         val turns = currentData?.turns?.toMutableList() ?: mutableListOf()
         turns.add(turn)
         cache.save(
-            presetName,
+            scopedKey,
             AgentLatencyData(
                 turns = turns,
                 turnTranscriptions = currentData?.turnTranscriptions?.toMutableMap() ?: mutableMapOf(),
@@ -161,6 +193,9 @@ class LatencyMetricsManager internal constructor(
         )
     }
 
+    /**
+     * Stores the latest user and assistant transcript snapshot for a specific turn.
+     */
     fun updateTurnTranscription(
         presetName: String,
         turnId: Long,
@@ -170,7 +205,8 @@ class LatencyMetricsManager internal constructor(
         if (presetName.isBlank() || turnId <= 0L) {
             return
         }
-        val currentData = cache.fetch(presetName) ?: return
+        val scopedKey = scopedPresetKey(presetName)
+        val currentData = cache.fetch(scopedKey) ?: return
         val turnKey = turnId.toString()
         val turnTranscriptions = currentData.turnTranscriptions.toMutableMap()
         turnTranscriptions[turnKey] = TurnTranscription(
@@ -178,7 +214,7 @@ class LatencyMetricsManager internal constructor(
             user = userText
         )
         cache.save(
-            presetName,
+            scopedKey,
             currentData.copy(
                 turns = currentData.turns.toMutableList(),
                 turnTranscriptions = turnTranscriptions,
@@ -189,35 +225,55 @@ class LatencyMetricsManager internal constructor(
         )
     }
 
+    /**
+     * Fetches metrics data for a preset from the current environment scope only.
+     */
     fun fetch(presetName: String): AgentLatencyData? {
         if (presetName.isBlank()) {
             return null
         }
-        return cache.fetch(presetName)
+        return cache.fetch(scopedPresetKey(presetName))
     }
 
+    /**
+     * Returns all metrics sessions visible to the current environment, with scope prefixes stripped.
+     */
     fun fetchAll(): Map<String, AgentLatencyData> {
         return cache.fetchAll()
+            .filterKeys(::isCurrentEnvScopedKey)
+            .mapKeys { (key, _) -> stripScope(key) }
     }
 
+    /**
+     * Removes the metrics session for a preset within the current environment scope.
+     */
     fun remove(presetName: String) {
         if (presetName.isBlank()) {
             return
         }
-        cache.remove(presetName)
+        cache.remove(scopedPresetKey(presetName))
     }
 
+    /**
+     * Removes all cached metrics sessions belonging to the current environment scope.
+     */
     fun removeAll() {
-        cache.removeAll()
+        fetchAll().keys.forEach { presetName ->
+            cache.remove(scopedPresetKey(presetName))
+        }
     }
 
+    /**
+     * Updates the bound agent ID for the preset's current environment-scoped metrics session.
+     */
     fun updateAgentId(presetName: String, agentId: String) {
         if (presetName.isBlank()) {
             return
         }
-        val currentData = cache.fetch(presetName) ?: return
+        val scopedKey = scopedPresetKey(presetName)
+        val currentData = cache.fetch(scopedKey) ?: return
         cache.save(
-            presetName,
+            scopedKey,
             currentData.copy(
                 turns = currentData.turns.toMutableList(),
                 turnTranscriptions = currentData.turnTranscriptions.toMutableMap(),
@@ -228,6 +284,9 @@ class LatencyMetricsManager internal constructor(
         )
     }
 
+    /**
+     * Persists report metadata only when the callback still matches the active session snapshot.
+     */
     fun updateReportInfoIfSessionMatches(
         presetName: String,
         sessionCallStartAtMs: Long?,
@@ -237,12 +296,13 @@ class LatencyMetricsManager internal constructor(
         if (presetName.isBlank()) {
             return false
         }
-        val currentData = cache.fetch(presetName) ?: return false
+        val scopedKey = scopedPresetKey(presetName)
+        val currentData = cache.fetch(scopedKey) ?: return false
         if (sessionCallStartAtMs != null && currentData.callStartAtMs != sessionCallStartAtMs) {
             return false
         }
         cache.save(
-            presetName,
+            scopedKey,
             currentData.copy(
                 turns = currentData.turns.toMutableList(),
                 turnTranscriptions = currentData.turnTranscriptions.toMutableMap(),

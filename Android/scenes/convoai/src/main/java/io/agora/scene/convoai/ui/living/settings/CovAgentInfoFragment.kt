@@ -10,11 +10,13 @@ import android.view.animation.AnimationUtils
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import io.agora.scene.common.constant.ServerConfig
 import io.agora.scene.common.ui.BaseFragment
 import io.agora.scene.common.ui.OnFastClickListener
 import io.agora.scene.common.util.LogUploader
 import io.agora.scene.common.util.copyToClipboard
 import io.agora.scene.common.util.toast.ToastUtil
+import io.agora.scene.convoai.CovLogger
 import io.agora.scene.convoai.R
 import io.agora.scene.convoai.api.CovAgentApiManager
 import io.agora.scene.convoai.constant.AgentConnectionState
@@ -321,10 +323,11 @@ class CovAgentInfoFragment : BaseFragment<CovAgentInfoFragmentBinding>() {
             return
         }
         val reportData = LatencyMetricsManager.shared.fetch(presetName) ?: return
-        if (reportData.agentId.isNullOrEmpty()) {
-            return
+        reportData.agentId?.let {
+            val reportUrl = ServerConfig.getConvoAiReportUrl(it)
+            CovLogger.d(TAG,"reportUrl:$reportUrl")
+            TermsActivity.startActivity(activity, reportUrl)
         }
-        TermsActivity.startActivity(activity, DATA_REPORT_URL)
     }
 
     private fun formatReportTime(timestampMs: Long?): String {
