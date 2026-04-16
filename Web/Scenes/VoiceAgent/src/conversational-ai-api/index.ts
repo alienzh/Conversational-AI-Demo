@@ -33,7 +33,7 @@ import { CovSubRenderController } from './utils/sub-render'
 
 const TAG = 'ConversationalAIAPI'
 // const CONSOLE_LOG_PREFIX = `[${TAG}]`
-const VERSION = '2.0.2'
+const VERSION = '2.2.0'
 
 const formatLog = factoryFormatLog({ tag: TAG })
 
