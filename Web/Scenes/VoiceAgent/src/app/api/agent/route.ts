@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
           ...(advanced_features
             ? {
                 advanced_features: {
+                  enable_aivad:
+                    advanced_features.enable_aivad ??
+                    nextAppFeature?.enable_aivad,
+                  enable_bhvs: advanced_features.enable_bhvs,
                   enable_rtm: advanced_features.enable_rtm,
                   enable_sal: advanced_features.enable_sal
                 }

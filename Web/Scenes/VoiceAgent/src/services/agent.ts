@@ -283,6 +283,13 @@ export const startAgent = async (
   )
 
   const respData = await resp?.json()
+  if (!respData?.data) {
+    throw new Error(
+      respData?.msg ||
+        respData?.message ||
+        `Agent start failed${respData?.code ? ` (${respData.code})` : ''}`
+    )
+  }
   const remoteRespSchema = basicRemoteResSchema.extend({
     data: remoteAgentStartRespDataSchema
   })

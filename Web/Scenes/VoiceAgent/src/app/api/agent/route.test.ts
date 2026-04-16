@@ -52,7 +52,7 @@ describe('POST /api/agent', () => {
     mock.restore()
   })
 
-  test('sends app_feature.enable_local_bvc and omits advanced_features.enable_bhvs', async () => {
+  test('sends app_feature fields while keeping legacy advanced_features flags for compatibility', async () => {
     const { POST } = await import('@/app/api/agent/route')
 
     const response = await POST({
@@ -104,12 +104,11 @@ describe('POST /api/agent', () => {
       enable_local_bvc: true
     })
     expect(remoteBody.convoai_body.properties.advanced_features).toEqual({
+      enable_aivad: true,
+      enable_bhvs: false,
       enable_rtm: true,
       enable_sal: false
     })
-    expect(
-      remoteBody.convoai_body.properties.advanced_features.enable_bhvs
-    ).toBeUndefined()
     expect(remoteBody.convoai_body.properties.parameters.enable_flexible).toBe(
       undefined
     )
