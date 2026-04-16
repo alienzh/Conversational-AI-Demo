@@ -1,4 +1,4 @@
-package io.agora.scene.convoai.convoaiApi
+package io.agora.conversational.api
 
 import io.agora.rtc2.Constants
 import io.agora.rtc2.RtcEngine

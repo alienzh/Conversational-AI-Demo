@@ -5,14 +5,13 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
-import android.os.Handler
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import io.agora.scene.common.R
 import io.agora.scene.common.util.dp
-import io.agora.scene.convoai.convoaiApi.AgentState
+import io.agora.conversational.api.AgentState
 
 /**
  * Agent State Indicator Component

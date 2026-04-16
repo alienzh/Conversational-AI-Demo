@@ -1,5 +1,6 @@
-package io.agora.scene.convoai.convoaiApi.subRender.v1
+package io.agora.scene.convoai.rtc.dataStream
 
+import android.util.Base64
 import com.google.gson.GsonBuilder
 import com.google.gson.ToNumberPolicy
 import com.google.gson.TypeAdapter
@@ -65,7 +66,7 @@ class MessageParser {
                     messageParts[it] ?: throw IllegalStateException("Missing part $it")
                 }
                 val decodedBytes = try {
-                    android.util.Base64.decode(completeMessage, android.util.Base64.DEFAULT)
+                    Base64.decode(completeMessage, Base64.DEFAULT)
                 } catch (e: IllegalArgumentException) {
                     throw IllegalArgumentException("Invalid Base64 content", e)
                 }

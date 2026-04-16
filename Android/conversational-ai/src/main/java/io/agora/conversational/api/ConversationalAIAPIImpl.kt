@@ -1,4 +1,4 @@
-package io.agora.scene.convoai.convoaiApi
+package io.agora.conversational.api
 
 import android.util.Log
 import io.agora.rtc2.Constants
@@ -16,12 +16,13 @@ import io.agora.rtm.RtmConstants
 import io.agora.rtm.RtmEventListener
 import io.agora.rtm.SubscribeOptions
 import io.agora.rtm.WhoNowResult
-import io.agora.scene.convoai.convoaiApi.subRender.v3.IConversationTranscriptCallback
-import io.agora.scene.convoai.convoaiApi.subRender.v3.MessageParser
-import io.agora.scene.convoai.convoaiApi.subRender.v3.TranscriptController
-import io.agora.scene.convoai.convoaiApi.subRender.v3.TranscriptConfig
+import io.agora.conversational.api.transcript.IConversationTranscriptCallback
+import io.agora.conversational.api.transcript.MessageParser
+import io.agora.conversational.api.transcript.TranscriptController
+import io.agora.conversational.api.transcript.TranscriptConfig
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.get
 
 internal data class ParsedTurnFinishedEvent(
     val agentUserId: String,

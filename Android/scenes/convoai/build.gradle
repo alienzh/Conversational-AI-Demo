@@ -38,6 +38,8 @@ android {
 dependencies {
     implementation project(':common')
     implementation project(':scenes:convoai:iot')
+//    implementation project(':conversational-ai')
+    implementation libs.conversation.ai
 
     // CameraX dependencies
     implementation libs.camerax.core

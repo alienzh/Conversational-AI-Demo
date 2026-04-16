@@ -1,4 +1,4 @@
-package io.agora.scene.convoai.convoaiApi.subRender.v3
+package io.agora.conversational.api.transcript
 
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IAudioFrameObserver
@@ -9,14 +9,14 @@ import io.agora.rtm.MessageEvent
 import io.agora.rtm.RtmClient
 import io.agora.rtm.RtmConstants
 import io.agora.rtm.RtmEventListener
-import io.agora.scene.convoai.convoaiApi.ConversationalAIAPI_VERSION
-import io.agora.scene.convoai.convoaiApi.ConversationalAIUtils
-import io.agora.scene.convoai.convoaiApi.InterruptEvent
-import io.agora.scene.convoai.convoaiApi.MessageType
-import io.agora.scene.convoai.convoaiApi.Transcript
-import io.agora.scene.convoai.convoaiApi.TranscriptRenderMode
-import io.agora.scene.convoai.convoaiApi.TranscriptStatus
-import io.agora.scene.convoai.convoaiApi.TranscriptType
+import io.agora.conversational.api.ConversationalAIAPI_VERSION
+import io.agora.conversational.api.ConversationalAIUtils
+import io.agora.conversational.api.InterruptEvent
+import io.agora.conversational.api.MessageType
+import io.agora.conversational.api.Transcript
+import io.agora.conversational.api.TranscriptRenderMode
+import io.agora.conversational.api.TranscriptStatus
+import io.agora.conversational.api.TranscriptType
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ticker
 import java.nio.ByteBuffer

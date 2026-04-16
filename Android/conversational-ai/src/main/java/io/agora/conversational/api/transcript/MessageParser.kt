@@ -1,4 +1,4 @@
-package io.agora.scene.convoai.convoaiApi.subRender.v3
+package io.agora.conversational.api.transcript
 
 import com.google.gson.GsonBuilder
 import com.google.gson.ToNumberPolicy

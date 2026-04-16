@@ -1,4 +1,4 @@
-package io.agora.convoai
+package io.agora.conversational
 
 import org.junit.Test
 

@@ -1,8 +1,7 @@
-package io.agora.scene.convoai.convoaiApi
+package io.agora.conversational.api
 
 import android.os.Handler
 import android.os.Looper
-import kotlinx.coroutines.Runnable
 import java.util.Collections
 
 internal object ConversationalAIUtils {
