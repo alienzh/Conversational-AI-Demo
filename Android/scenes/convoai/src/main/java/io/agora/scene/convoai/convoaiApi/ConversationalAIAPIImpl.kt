@@ -11,14 +11,17 @@ import io.agora.rtm.ResultCallback
 import io.agora.rtm.ErrorInfo
 import io.agora.rtm.MessageEvent
 import io.agora.rtm.PresenceEvent
+import io.agora.rtm.PresenceOptions
 import io.agora.rtm.RtmConstants
 import io.agora.rtm.RtmEventListener
 import io.agora.rtm.SubscribeOptions
+import io.agora.rtm.WhoNowResult
 import io.agora.scene.convoai.convoaiApi.subRender.v3.IConversationTranscriptCallback
 import io.agora.scene.convoai.convoaiApi.subRender.v3.MessageParser
 import io.agora.scene.convoai.convoaiApi.subRender.v3.TranscriptController
 import io.agora.scene.convoai.convoaiApi.subRender.v3.TranscriptConfig
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Implementation of ConversationalAI API
@@ -52,8 +55,7 @@ class ConversationalAIAPIImpl(val config: ConversationalAIAPIConfig) : IConversa
 
     private var audioRouting = Constants.AUDIO_ROUTE_DEFAULT
 
-    @Volatile
-    private var stateChangeEvent: StateChangeEvent? = null
+    private val stateChangeEvents = ConcurrentHashMap<String, StateChangeEvent>()
 
     private fun callMessagePrint(tag: String, message: String) {
         conversationalAIHandlerHelper.notifyEventHandlers { eventHandler ->
@@ -237,25 +239,14 @@ class ConversationalAIAPIImpl(val config: ConversationalAIAPIConfig) : IConversa
                 return
             }
             // Check if channelType is MESSAGE
-            if (event.channelType == RtmConstants.RtmChannelType.MESSAGE) {
-                if (event.eventType == RtmConstants.RtmPresenceEventType.REMOTE_STATE_CHANGED) {
-                    val state = event.stateItems["state"] ?: ""
-
-                    val turnId: Long = event.stateItems["turn_id"]?.toString()?.toLongOrNull() ?: 0L
-                    if (turnId < (stateChangeEvent?.turnId ?: 0)) return
-
-                    val ts = event.timestamp
-                    if (ts <= (stateChangeEvent?.timestamp ?: 0)) return
-
-                    val aiState = AgentState.fromValue(state)
-                    val changeEvent = StateChangeEvent(aiState, turnId, ts)
-                    stateChangeEvent = changeEvent
-                    val agentUserId = event.publisherId
-                    callMessagePrint(TAG, "<<< [onAgentStateChanged] $agentUserId $changeEvent")
-                    conversationalAIHandlerHelper.notifyEventHandlers {
-                        it.onAgentStateChanged(agentUserId, changeEvent)
-                    }
-                }
+            if (event.channelType == RtmConstants.RtmChannelType.MESSAGE &&
+                event.eventType == RtmConstants.RtmPresenceEventType.REMOTE_STATE_CHANGED
+            ) {
+                handlePresenceStates(
+                    agentUserId = event.publisherId,
+                    states = event.stateItems,
+                    timestamp = event.timestamp
+                )
             }
         }
 
@@ -318,7 +309,7 @@ class ConversationalAIAPIImpl(val config: ConversationalAIAPIConfig) : IConversa
         callMessagePrint(TAG, ">>> [traceId:$traceId] [subscribeMessage] $channel")
         transcriptController.reset()
         channelName = channel
-        stateChangeEvent = null
+        stateChangeEvents.clear()
         val option = SubscribeOptions().apply {
             withMessage = true
             withPresence = true
@@ -330,12 +321,13 @@ class ConversationalAIAPIImpl(val config: ConversationalAIAPIConfig) : IConversa
                 runOnMainThread {
                     completion.invoke(null)
                 }
+                queryAgentStates(channel)
             }
 
             override fun onFailure(errorInfo: ErrorInfo) {
                 callMessagePrint(TAG, "<<< [traceId:$traceId] rtm subscribe onFailure ${errorInfo.str()}")
                 channelName = null
-                stateChangeEvent = null
+                stateChangeEvents.clear()
                 runOnMainThread {
                     val errorCode = RtmConstants.RtmErrorCode.getValue(errorInfo.errorCode)
                     completion.invoke(ConversationalAIAPIError.RtmError(errorCode, errorInfo.errorReason))
@@ -346,6 +338,7 @@ class ConversationalAIAPIImpl(val config: ConversationalAIAPIConfig) : IConversa
 
     override fun unsubscribeMessage(channel: String, completion: (ConversationalAIAPIError?) -> Unit) {
         channelName = null
+        stateChangeEvents.clear()
         val traceId = genTraceId
         callMessagePrint(TAG, ">>> [traceId:$traceId] [unsubscribeMessage] $channel")
         transcriptController.reset()
@@ -558,8 +551,115 @@ class ConversationalAIAPIImpl(val config: ConversationalAIAPIConfig) : IConversa
         callMessagePrint(TAG, ">>> [destroy]")
         config.rtcEngine.removeHandler(covRtcHandler)
         config.rtmClient.removeEventListener(covRtmMsgProxy)
+        stateChangeEvents.clear()
         conversationalAIHandlerHelper.unSubscribeAll()
         transcriptController.release()
+    }
+
+    private fun queryAgentStates(channel: String, page: String? = null) {
+        if (channelName != channel) {
+            callMessagePrint(TAG, "<<< [queryAgentStates] ignore stale channel:$channel current:$channelName")
+            return
+        }
+
+        val options = PresenceOptions().apply {
+            setIncludeUserId(true)
+            setIncludeState(true)
+            if (!page.isNullOrEmpty()) {
+                setPage(page)
+            }
+        }
+
+        config.rtmClient.getPresence().whoNow(
+            channel,
+            RtmConstants.RtmChannelType.MESSAGE,
+            options,
+            object : ResultCallback<WhoNowResult> {
+                override fun onSuccess(result: WhoNowResult?) {
+                    if (channelName != channel) {
+                        callMessagePrint(TAG, "<<< [queryAgentStates] stale result channel:$channel current:$channelName")
+                        return
+                    }
+
+                    val userStates = result?.userStateList.orEmpty()
+                    callMessagePrint(
+                        TAG,
+                        "<<< [queryAgentStates] whoNow success channel:$channel userCount:${userStates.size} nextPage:${result?.nextPage ?: ""}"
+                    )
+
+                    userStates.forEach { userState ->
+                        handlePresenceStates(
+                            agentUserId = userState.userId,
+                            states = userState.states.orEmpty(),
+                            timestamp = null
+                        )
+                    }
+
+                    val nextPage = result?.nextPage
+                    if (!nextPage.isNullOrEmpty()) {
+                        queryAgentStates(channel, nextPage)
+                    }
+                }
+
+                override fun onFailure(errorInfo: ErrorInfo) {
+                    callMessagePrint(TAG, "<<< [queryAgentStates] whoNow onFailure ${errorInfo.str()}")
+                }
+            }
+        )
+    }
+
+    private fun handlePresenceStates(
+        agentUserId: String,
+        states: Map<String, String>,
+        timestamp: Long?
+    ) {
+        states["state"]?.let { state ->
+            val turnId = states["turn_id"]?.toLongOrNull() ?: 0L
+            val currentStateChangeEvent = stateChangeEvents[agentUserId]
+            val shouldNotifyStateChange = if (timestamp != null) {
+                turnId >= (currentStateChangeEvent?.turnId ?: 0L) &&
+                    timestamp > (currentStateChangeEvent?.timestamp ?: 0L)
+            } else {
+                currentStateChangeEvent == null
+            }
+
+            if (shouldNotifyStateChange) {
+                val changeEvent = StateChangeEvent(
+                    state = AgentState.fromValue(state),
+                    turnId = turnId,
+                    timestamp = timestamp ?: System.currentTimeMillis()
+                )
+                stateChangeEvents[agentUserId] = changeEvent
+                callMessagePrint(TAG, "<<< [onAgentStateChanged] $agentUserId $changeEvent")
+                conversationalAIHandlerHelper.notifyEventHandlers {
+                    it.onAgentStateChanged(agentUserId, changeEvent)
+                }
+            }
+        }
+
+        states["listening"]?.let { listening ->
+            val isListening = listening == "true"
+            callMessagePrint(TAG, "<<< [onAgentListeningChanged] $agentUserId $isListening")
+            conversationalAIHandlerHelper.notifyEventHandlers {
+                it.onAgentListeningChanged(agentUserId, isListening)
+            }
+        }
+
+        states["thinking"]?.let { thinking ->
+            val isThinking = thinking == "true"
+            callMessagePrint(TAG, "<<< [onAgentThinkingChanged] $agentUserId $isThinking")
+            conversationalAIHandlerHelper.notifyEventHandlers {
+                it.onAgentThinkingChanged(agentUserId, isThinking)
+            }
+        }
+
+        states["speaking"]?.let { speaking ->
+            val isSpeaking = speaking == "true"
+            callMessagePrint(TAG, "<<< [onAgentSpeakingChanged] $agentUserId $isSpeaking")
+            conversationalAIHandlerHelper.notifyEventHandlers {
+                it.onAgentSpeakingChanged(agentUserId, isSpeaking)
+            }
+        }
     }
 
     // set audio config parameters
