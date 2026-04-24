@@ -108,6 +108,11 @@ const DEFAULT_SETTINGS = {
     enable_rtm: true,
     enable_sal: false
   },
+  app_feature: {
+    enable_aivad: false,
+    pause_state_enabled: false,
+    enable_local_bvc: true
+  },
   // !SPECIAL CASE[audio_scenario]
   parameters: {
     audio_scenario: 'default' as const

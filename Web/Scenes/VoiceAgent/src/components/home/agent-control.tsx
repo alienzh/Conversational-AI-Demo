@@ -63,6 +63,7 @@ import {
   type IMessageSalStatus,
   type ITranscriptHelperItem,
   type IUserTranscription,
+  type TAgentTurnFinished,
   type TStateChangeEvent
 } from '@/conversational-ai-api/type'
 import {
@@ -72,8 +73,13 @@ import {
 import { logger } from '@/lib/logger'
 import { cn } from '@/lib/utils'
 import {
+  buildLatencyReportPayload,
+  type TranscriptLikeItem
+} from '@/lib/latency-metrics'
+import {
   pingAgent,
   ResourceLimitError,
+  reportAgentMetrics,
   startAgent,
   stopAgent
 } from '@/services/agent'
@@ -82,6 +88,7 @@ import {
   useAgentSettingsStore,
   useChatStore,
   useGlobalStore,
+  useReportStore,
   useRTCStore,
   useUserInfoStore
 } from '@/store'
@@ -150,6 +157,14 @@ export default function AgentControl(props: { className?: string }) {
     sipStatus
   } = useSipStore()
   const { setHistory, clearHistory } = useChatStore()
+  const {
+    startSession,
+    upsertTurn,
+    syncTranscript,
+    finalizeActiveSession,
+    markUploaded,
+    clearActiveSession
+  } = useReportStore()
   const { accountUid, clearUserInfo } = useUserInfoStore()
 
   const sipStatusRef = React.useRef<NodeJS.Timeout | null>(null)
@@ -210,6 +225,10 @@ export default function AgentControl(props: { className?: string }) {
       conversationalAIAPI.on(
         EConversationalAIAPIEvents.MESSAGE_SAL_STATUS,
         onMessageSalStatus
+      )
+      conversationalAIAPI.on(
+        EConversationalAIAPIEvents.AGENT_TURN_FINISHED,
+        onTurnFinished
       )
 
       conversationalAIAPI.on(
@@ -369,6 +388,14 @@ export default function AgentControl(props: { className?: string }) {
       startAgentAbortControllerRef.current = abortController
       const res = await startAgent(payload, abortController)
       updateAgentId(res.agent_id)
+      startSession({
+        agentId: res.agent_id,
+        channel: channel_name,
+        presetName: settings.preset_name,
+        presetDisplayName:
+          selectedPreset?.preset.display_name || settings.preset_name,
+        callStartAt: Date.now()
+      })
 
       setConversationTimerEndTimestamp(Date.now() + conversationDuration * 1000)
       setHeartBeat()
@@ -522,6 +549,8 @@ export default function AgentControl(props: { className?: string }) {
         logger.log('clearAndExit unauthorizedError')
         toast.error(tLogin('unauthorizedError'))
       }
+    } finally {
+      await uploadLatencyReport()
     }
   }
 
@@ -562,6 +591,14 @@ export default function AgentControl(props: { className?: string }) {
       updateSipStatus(ESipStatus.CALLING)
       console.log('startSipService res', res)
       updateAgentId(res.agent_id)
+      startSession({
+        agentId: res.agent_id,
+        channel: channel_name,
+        presetName: sipPreset?.preset_name || settings.preset_name,
+        presetDisplayName:
+          selectedPreset?.preset.display_name || sipPreset?.preset_name || '',
+        callStartAt: Date.now()
+      })
     } catch (error: unknown) {
       logger.error({ error }, 'startSipService error')
       console.log('startSipService error', (error as Error).message)
@@ -629,6 +666,10 @@ export default function AgentControl(props: { className?: string }) {
       EConversationalAIAPIEvents.TRANSCRIPT_UPDATED,
       onTextChanged
     )
+    conversationalAIAPI.on(
+      EConversationalAIAPIEvents.AGENT_TURN_FINISHED,
+      onTurnFinished
+    )
 
     conversationalAIAPI.subscribeMessage(channel_name)
     await rtmHelper.join(channel_name)
@@ -655,6 +696,7 @@ export default function AgentControl(props: { className?: string }) {
     startAgentAbortControllerRef.current = null
     clearCommon()
     updateChannelName()
+    await uploadLatencyReport()
   }
 
   const onLocalTracksChanged = (tracks: IUserTracks) => {
@@ -778,6 +820,18 @@ export default function AgentControl(props: { className?: string }) {
   ) => {
     logger.info({ history }, 'onTextChanged')
     setHistory(history)
+    syncTranscript(
+      history.map((item) => ({
+        turn_id: item.turn_id,
+        uid: item.uid,
+        text: item.text
+      })) as TranscriptLikeItem[]
+    )
+  }
+
+  const onTurnFinished = (_agentUserId: string, turn: TAgentTurnFinished) => {
+    logger.info({ turn }, 'onTurnFinished')
+    upsertTurn(turn)
   }
 
   const onAgentStateChangedLegacy = (state: EAgentState) => {
@@ -815,6 +869,34 @@ export default function AgentControl(props: { className?: string }) {
       }
     } else {
       updateSalStatus(ESALSettingsMode.OFF)
+    }
+  }
+
+  const uploadLatencyReport = async () => {
+    const session = finalizeActiveSession()
+    if (!session?.agentId || session.turns.length === 0) {
+      clearActiveSession()
+      return
+    }
+
+    try {
+      const payload = buildLatencyReportPayload({
+        agentId: session.agentId,
+        channel: session.channel,
+        presetName: session.presetName,
+        presetDisplayName: session.presetDisplayName,
+        callStartAt: session.callStartAt,
+        turns: session.turns,
+        transcriptByTurnId: session.transcriptByTurnId
+      })
+      const res = await reportAgentMetrics(payload, {
+        devMode: isDevMode
+      })
+      markUploaded(session.agentId, res.data?.uploaded_at)
+    } catch (error) {
+      logger.error({ error, agentId: session.agentId }, 'uploadLatencyReport')
+    } finally {
+      clearActiveSession()
     }
   }
 

@@ -12,6 +12,7 @@ import {
   CardActions,
   CardContent
 } from '@/components/card/base'
+import { LiveMetricsToggle } from '@/components/home/live-metrics-toggle'
 import { useClickAway } from '@/hooks/use-click-away'
 import { useIsDemoCalling } from '@/hooks/use-is-agent-calling'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -27,6 +28,7 @@ import { cn } from '@/lib/utils'
 import {
   useAgentSettingsStore,
   useGlobalStore,
+  useReportStore,
   useRTCStore,
   useUserInfoStore
 } from '@/store'
@@ -45,16 +47,20 @@ export function AgentCard(props: {
   const {
     showSidebar,
     showSALSettingSidebar,
+    showSubtitle,
     onClickSidebar,
     setShowSALSettingSidebar
   } = useGlobalStore()
   const { selectedPreset } = useAgentSettingsStore()
   const { accountUid } = useUserInfoStore()
+  const { activeSession } = useReportStore()
 
   const isSipPresetSelected =
     !!selectedPreset?.preset?.preset_type?.includes('sip_call')
   // const t = useTranslations()
   const isDemoCalling = useIsDemoCalling()
+  const showLiveMetricsToggle =
+    isDemoCalling && showSubtitle && !!activeSession?.turns.length
 
   return (
     <Card
@@ -102,6 +108,7 @@ export function AgentCard(props: {
         </div>
         {!isSipPresetSelected && (
           <>
+            {showLiveMetricsToggle && <LiveMetricsToggle />}
             <AgentCardAdvancedFeatures />
             <CardAction
               key='settings'

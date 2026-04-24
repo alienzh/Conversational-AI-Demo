@@ -27,7 +27,7 @@ import {
 const TAG = 'CovSubRenderController'
 const CONSOLE_LOG_PREFIX = `[${TAG}]`
 const SELF_USER_ID = 0
-const VERSION = '2.0.2'
+const VERSION = '2.2.0'
 
 const DEFAULT_INTERVAL = 200 // milliseconds
 const DEFAULT_CHUNK_INTERVAL = 100 // milliseconds, 10 char/s
