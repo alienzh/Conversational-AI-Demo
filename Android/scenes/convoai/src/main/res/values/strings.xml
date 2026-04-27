@@ -45,8 +45,8 @@
     <string name="cov_info_more">More Actions</string>
     <string name="cov_info_uploader">Quick Report</string>
     <string name="cov_info_call_data">Call Data</string>
-    <string name="cov_info_data_report">Data report</string>
-    <string name="cov_info_report_generate_tip">Generated after the call ends</string>
+    <string name="cov_info_data_report">Data Report</string>
+    <string name="cov_info_report_generate_tip">Post-Call Analysis</string>
 
     <string name="cov_setting_title">Agent Settings</string>
     <string name="cov_setting_agent">AGENT</string>
@@ -65,20 +65,20 @@
     <string name="cov_setting_ai_vad"></string>
     <string name="cov_setting_ai_vad1">IIH</string>
     <string name="cov_setting_ai_vad_high">Intelligent Interruption Handling\n(IIH)</string>
-    <string name="cov_setting_ai_vad_high_desc">This feature makes AI better understand you and reduces false interruption.</string>
-    <string name="cov_setting_ai_pause">Smart Pause</string>
-    <string name="cov_setting_ai_pause_desc">This feature enables the agent to pause logical reasoning temporarily to handle other tasks and resume right from where it was interrupted.</string>
+    <string name="cov_setting_ai_vad_high_desc">Intelligent Interruption Handling is Agora’s proprietary algorithm that detects user speech context and applies the right interruption strategy.</string>
+    <string name="cov_setting_ai_pause">Intelligent Pause</string>
+    <string name="cov_setting_ai_pause_desc">Intelligent Pause is Agora’s proprietary agent conversation algorithm that lets the agent pause reasoning for another task, then resume from where it left off.</string>
     <string name="cov_setting_network_error">Network Error!</string>
     <string name="cov_agent_connecting">Connecting…</string>
     <string name="cov_copy_succeed">Copied</string>
     <string name="cov_interrupted">Interrupted</string>
-    <string name="cov_real_time_data">Real-Time data</string>
+    <string name="cov_real_time_data">Real-time data</string>
     <string name="cov_latency_metrics_current_round">#</string>
-    <string name="cov_latency_metrics_total">End-to-end:</string>
+    <string name="cov_latency_metrics_total">E2E:</string>
     <string name="cov_latency_metrics_value_ms">%1$dms</string>
     <string name="cov_latency_metrics_chip_format">%1$s %2$s</string>
     <string name="cov_latency_metrics_label_rtc">RTC:</string>
-    <string name="cov_latency_metrics_label_ai">AI:</string>
+    <string name="cov_latency_metrics_label_ai">AI Audio:</string>
     <string name="cov_latency_metrics_label_asr">ASR:</string>
     <string name="cov_latency_metrics_label_llm">LLM:</string>
     <string name="cov_latency_metrics_label_tts">TTS:</string>
