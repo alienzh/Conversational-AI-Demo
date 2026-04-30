@@ -30,11 +30,12 @@ extension ChatViewController {
     internal func setupViews() {
         view.backgroundColor = .black
         naviBar.isHidden = true
-        [animateContentView, fullSizeContainerView, upperBackgroundView, lowerBackgroundView, messageMaskView, messageView, smallSizeContainerView, agentStateView, navivationBar, sideNavigationBar, activeFuncsView, callControlBar, volumeAnimateView, annotationView, sendMessageButton].forEach { view.addSubview($0) }
+        [animateContentView, fullSizeContainerView, upperBackgroundView, lowerBackgroundView, messageMaskView, messageView, smallSizeContainerView, agentStateView, navivationBar, sideNavigationBar, activeFuncsView, callControlBar, volumeAnimateView, annotationView, aiGeneratedLabel, sendMessageButton].forEach { view.addSubview($0) }
 
         [miniView].forEach { smallSizeContainerView.addSubview($0) }
         [remoteAvatarView].forEach { miniView.addSubview($0) }
         [localVideoView].forEach { fullSizeContainerView.addSubview($0) }
+        messageView.setRealtimeDataToggleVisible(false)
     }
     
     internal func setupConstraints() {
@@ -89,7 +90,7 @@ extension ChatViewController {
         }
         
         messageView.snp.makeConstraints { make in
-            make.top.equalTo(navivationBar.snp.bottom).offset(22)
+            make.top.equalTo(navivationBar.snp.bottom).offset(10)
             make.left.right.equalTo(0)
             make.bottom.equalTo(agentStateView.snp.top)
         }
@@ -113,6 +114,11 @@ extension ChatViewController {
             make.bottom.equalTo(callControlBar.snp.top).offset(-94)
             make.left.right.equalTo(0)
             make.height.equalTo(44)
+        }
+
+        aiGeneratedLabel.snp.makeConstraints { make in
+            make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(-8)
+            make.centerX.equalToSuperview()
         }
         
         upperBackgroundView.snp.makeConstraints { make in
@@ -180,6 +186,7 @@ extension ChatViewController {
         timerCoordinator.stopAllTimer()
         agentStateView.isHidden = true
         activeFuncsView.isHidden = true
+        messageView.setRealtimeDataToggleVisible(false)
         activeFuncsView.resetState()
         updateWindowContent()
     }
@@ -289,6 +296,7 @@ extension ChatViewController {
         callControlBar.setButtonColorTheme(showLight: isLight)
         navivationBar.setButtonColorTheme(showLight: isLight)
         activeFuncsView.setButtonColorTheme(showLight: isLight)
+        messageView.setRealtimeDataToggleStyle(showLight: isLight)
     }
     
     @objc func smallWindowClicked() {

@@ -57,6 +57,7 @@ Follow these steps to quickly integrate and use the ConversationalAI API:
        override fun onAgentSpeakingChanged(agentUserId: String, isSpeaking: Boolean) { /* ... */ }
        override fun onAgentInterrupted(agentUserId: String, event: InterruptEvent) { /* ... */ }
        override fun onAgentMetrics(agentUserId: String, metric: Metric) { /* ... */ }
+       override fun onTurnFinished(agentUserId: String, turn: Turn) { /* ... */ }
        override fun onAgentError(agentUserId: String, error: ModuleError) { /* ... */ }
        override fun onMessageError(agentUserId: String, error: MessageError) { /* ... */ } 
        override fun onMessageReceiptUpdated(agentUserId: String, receipt: MessageReceipt) { /* ... */ }
@@ -249,6 +250,54 @@ override fun onMessageError(agentUserId: String, error: MessageError) {
     }
 }
 ```
+
+### Turn Latency Metrics (`turn.finished`)
+
+After a voice interaction turn completes, the server may emit a `turn.finished` event. The SDK parses it automatically and delivers the completed-turn latency metrics through `onTurnFinished(agentUserId, turn)`.
+
+Example payload:
+
+```json
+{
+  "event_ms": 1773901235435,
+  "event_type": "turn.finished",
+  "payload": {
+    "turn_id": 2,
+    "agent_id": "A42AJ98KF56CV39FP62ED54VR47WP36R",
+    "start": {
+      "start_at": 1773901219000
+    },
+    "metrics": {
+      "e2e_latency_ms": 1294,
+      "segmented_latency_ms": [
+        { "name": "algorithm_processing", "latency": 120 },
+        { "name": "asr_ttlw", "latency": 598 },
+        { "name": "llm_ttft", "latency": 202 },
+        { "name": "tts_ttfb", "latency": 178 },
+        { "name": "transport", "latency": 196 }
+      ]
+    }
+  }
+}
+```
+
+Integration example:
+
+```kotlin
+override fun onTurnFinished(agentUserId: String, turn: Turn) {
+    Log.d(
+        "ConvoAI",
+        "turn=${turn.turnId}, e2e=${turn.e2eLatency}, transport=${turn.segmentedLatency.transport}"
+    )
+}
+```
+
+Notes:
+
+- `agentUserId` prefers `payload.agent_id`, and falls back to the RTM `publisherId` when absent.
+- `timestamp` prefers `payload.start.start_at`, and falls back to `event_ms` when absent.
+- Missing entries in `segmented_latency_ms` are filled with `0.0`.
+- Legacy `message.metrics` events still come through `onAgentMetrics`.
 
 ---
 
