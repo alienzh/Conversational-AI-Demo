@@ -50,6 +50,6 @@ TODO: Add long description of the pod here.
   s.dependency 'Common'
   s.dependency 'Kingfisher'
   s.dependency 'IoT'
-  s.dependency 'AgoraAgentClientToolkitTmpZW'
+  s.dependency 'AgoraAgentClientToolkitTmpZW', '0.0.1'
   s.dependency 'Kingfisher'
 end
