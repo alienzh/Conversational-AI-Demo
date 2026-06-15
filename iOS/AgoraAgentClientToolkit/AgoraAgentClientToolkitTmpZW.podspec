@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name = 'AgoraAgentClientToolkitTmpZW'
   s.module_name = 'AgoraAgentClientToolkit'
-  s.version = '0.0.1-test1'
+  s.version = '0.0.1-test2'
   s.summary = 'Client-side toolkit for Agora Conversational AI on iOS.'
   s.description = <<-DESC
     A lightweight iOS toolkit that adds Conversational AI messaging,
@@ -24,9 +24,9 @@ Pod::Spec.new do |s|
   s.xcconfig = { 'ENABLE_BITCODE' => 'NO' }
 
   s.source_files = [
-    'AgoraAgentClientToolkit/Classes/**/*.swift'
+    'iOS/AgoraAgentClientToolkit/AgoraAgentClientToolkit/Classes/**/*.swift'
   ]
 
   s.dependency 'AgoraRtcEngine_iOS', '>= 4.5.1', '< 5.0'
-  s.dependency 'AgoraRtm', '>= 2.2.3', '< 3.0'
+  s.dependency 'AgoraRtm/RtmKit', '>= 2.2.3', '< 3.0'
 end
