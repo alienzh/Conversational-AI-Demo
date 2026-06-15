@@ -12,16 +12,36 @@ import IoT
 
 extension ChatViewController {
     private func uploadLatestLatencyReportIfNeeded() {
-        guard let latestSession = LatencyMetricsManager.shared.fetchLatest(),
+        guard let presetName = AppContext.settingManager().preset?.name, !presetName.isEmpty,
+              let latestSession = LatencyMetricsManager.shared.fetch(presetName: presetName),
               latestSession.hasTurns else {
             return
         }
 
+        let turnIds = latestSession.turns.map(\.turnId)
+        let transcriptions = messageView.snapshotTurnTranscriptions(turnIds: turnIds)
+        LatencyMetricsManager.shared.updateTurnTranscriptions(presetName: presetName, transcriptions)
+
+        guard let sessionToUpload = LatencyMetricsManager.shared.fetch(presetName: presetName) else {
+            return
+        }
+        let sessionStartedAt = sessionToUpload.startedAt
+        let sessionAgentId = sessionToUpload.agentId ?? ""
+
         toolBox.uploadLatencyReport(
-            session: latestSession
+            session: sessionToUpload
         ) { [weak self] uploadedAt in
-            LatencyMetricsManager.shared.updateReportUploadedAt(uploadedAt)
-            self?.addLog("[latency-report] upload success uploadedAt: \(uploadedAt?.description ?? "nil")")
+            guard let uploadedAt else {
+                self?.addLog("[latency-report] upload success but uploadedAt is nil")
+                return
+            }
+            let stored = LatencyMetricsManager.shared.storeReportInfoIfSessionMatches(
+                presetName: presetName,
+                sessionStartedAt: sessionStartedAt,
+                agentId: sessionAgentId,
+                reportedAt: uploadedAt
+            )
+            self?.addLog("[latency-report] upload success uploadedAt: \(uploadedAt) stored: \(stored)")
         } failure: { [weak self] error in
             self?.addLog("[latency-report] upload skipped/failed: \(error)")
         }
@@ -323,10 +343,13 @@ extension ChatViewController {
         } else {
             channelName = "agent_\(UUID().uuidString.prefix(8))"
         }
-        LatencyMetricsManager.shared.beginSession(
-            presetName: AppContext.settingManager().preset?.name,
-            channelName: channelName
-        )
+        if let presetName = AppContext.settingManager().preset?.name, !presetName.isEmpty {
+            LatencyMetricsManager.shared.beginSession(
+                presetName: presetName,
+                presetDisplayName: AppContext.settingManager().preset?.displayName,
+                channelName: channelName
+            )
+        }
         agentIsJoined = false
         avatarIsJoined = false
         
@@ -358,7 +381,13 @@ extension ChatViewController {
                     AppContext.stateManager().updateAgentId(remoteAgentId)
                     AppContext.stateManager().updateUserId(self.uid)
                     AppContext.stateManager().updateTargetServer(targetServer)
-                    LatencyMetricsManager.shared.updateAgentId(remoteAgentId)
+                    if let presetName = AppContext.settingManager().preset?.name,
+                       !presetName.isEmpty {
+                        LatencyMetricsManager.shared.updateAgentId(
+                            presetName: presetName,
+                            remoteAgentId
+                        )
+                    }
                 }
                 addLog("start agent success, agent id is: \(self.remoteAgentId)")
                 self.timerCoordinator.startPingTimer()

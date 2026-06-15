@@ -35,13 +35,18 @@ data class AgentLatencyData(
     val turns: MutableList<Turn> = mutableListOf(),
     val turnTranscriptions: MutableMap<String, TurnTranscription> = mutableMapOf(),
     var callStartAtMs: Long? = null,
-    var agentId: String? = null,
-    var reportedAtMs: Long? = null,
+)
+
+data class AgentReportData(
+    val agentId: String? = null,
+    val reportedAtMs: Long? = null,
 )
 
 data class TurnFinishedMetricsUiModel(
     val turnId: Long?,
     val totalLatencyMs: Int,
+    val rtcLatencyMs: Int?,
+    val aiAudioLatencyMs: Int?,
     val asrLatencyMs: Int?,
     val llmLatencyMs: Int?,
     val ttsLatencyMs: Int?,
@@ -56,6 +61,8 @@ data class TurnFinishedMetricsState(
         return TurnFinishedMetricsUiModel(
             turnId = turn.turnId.takeIf { it > 0 },
             totalLatencyMs = turn.e2eLatency.toLatencyMs(),
+            rtcLatencyMs = turn.segmentedLatency.transport.toLatencyMsOrNull(),
+            aiAudioLatencyMs = turn.segmentedLatency.algorithmProcessing.toLatencyMsOrNull(),
             asrLatencyMs = turn.segmentedLatency.asrTTLW.toLatencyMsOrNull(),
             llmLatencyMs = turn.segmentedLatency.llmTTFT.toLatencyMsOrNull(),
             ttsLatencyMs = turn.segmentedLatency.ttsTTFB.toLatencyMsOrNull(),
@@ -125,6 +132,11 @@ class LatencyMetricsManager internal constructor(
         storage = LocalLatencyMetricsStorage,
         storageKey = LATENCY_METRICS_STORE_KEY,
         itemClass = AgentLatencyData::class.java
+    ),
+    private val reportCache: DataCache<AgentReportData> = DataCache(
+        storage = LocalLatencyMetricsStorage,
+        storageKey = LATENCY_REPORT_STORE_KEY,
+        itemClass = AgentReportData::class.java
     )
 ) {
 
@@ -151,9 +163,15 @@ class LatencyMetricsManager internal constructor(
     }
 
     /**
-     * Starts or resets the latency metrics session for the given preset in the current environment scope.
+     * Starts a new latency metrics session for the specified preset.
+     *
+     * This overwrites any existing cached latency data for the same preset in the current
+     * environment and records the current call start time.
+     *
+     * Report metadata is intentionally stored in a separate cache so a short call that
+     * never uploads a new report does not wipe the previous report entry.
      */
-    fun startSession(presetName: String, callStartAtMs: Long?, agentId: String) {
+    fun startSession(presetName: String, callStartAtMs: Long?) {
         if (presetName.isBlank()) {
             return
         }
@@ -164,8 +182,6 @@ class LatencyMetricsManager internal constructor(
                 turns = mutableListOf(),
                 turnTranscriptions = mutableMapOf(),
                 callStartAtMs = callStartAtMs,
-                agentId = agentId,
-                reportedAtMs = null
             )
         )
     }
@@ -187,8 +203,6 @@ class LatencyMetricsManager internal constructor(
                 turns = turns,
                 turnTranscriptions = currentData?.turnTranscriptions?.toMutableMap() ?: mutableMapOf(),
                 callStartAtMs = currentData?.callStartAtMs,
-                agentId = currentData?.agentId,
-                reportedAtMs = currentData?.reportedAtMs
             )
         )
     }
@@ -219,8 +233,6 @@ class LatencyMetricsManager internal constructor(
                 turns = currentData.turns.toMutableList(),
                 turnTranscriptions = turnTranscriptions,
                 callStartAtMs = currentData.callStartAtMs,
-                agentId = currentData.agentId,
-                reportedAtMs = currentData.reportedAtMs
             )
         )
     }
@@ -233,6 +245,17 @@ class LatencyMetricsManager internal constructor(
             return null
         }
         return cache.fetch(scopedPresetKey(presetName))
+    }
+
+    /**
+     * Returns the latest successfully uploaded report metadata for the specified preset
+     * in the current environment.
+     */
+    fun fetchReport(presetName: String): AgentReportData? {
+        if (presetName.isBlank()) {
+            return null
+        }
+        return reportCache.fetch(scopedPresetKey(presetName))
     }
 
     /**
@@ -264,30 +287,16 @@ class LatencyMetricsManager internal constructor(
     }
 
     /**
-     * Updates the bound agent ID for the preset's current environment-scoped metrics session.
+     * Writes the latest report timestamp and report agent ID only if the callback still
+     * matches the currently cached session.
+     *
+     * This prevents stale asynchronous callbacks from older sessions from
+     * overwriting newer session data or the latest report entry.
+     *
+     * @return `true` if the callback matches the current cached session and the
+     * data was updated, or `false` if the callback was ignored.
      */
-    fun updateAgentId(presetName: String, agentId: String) {
-        if (presetName.isBlank()) {
-            return
-        }
-        val scopedKey = scopedPresetKey(presetName)
-        val currentData = cache.fetch(scopedKey) ?: return
-        cache.save(
-            scopedKey,
-            currentData.copy(
-                turns = currentData.turns.toMutableList(),
-                turnTranscriptions = currentData.turnTranscriptions.toMutableMap(),
-                callStartAtMs = currentData.callStartAtMs,
-                agentId = agentId,
-                reportedAtMs = currentData.reportedAtMs
-            )
-        )
-    }
-
-    /**
-     * Persists report metadata only when the callback still matches the active session snapshot.
-     */
-    fun updateReportInfoIfSessionMatches(
+    fun storeReportInfoIfSessionMatches(
         presetName: String,
         sessionCallStartAtMs: Long?,
         agentId: String,
@@ -301,12 +310,9 @@ class LatencyMetricsManager internal constructor(
         if (sessionCallStartAtMs != null && currentData.callStartAtMs != sessionCallStartAtMs) {
             return false
         }
-        cache.save(
+        reportCache.save(
             scopedKey,
-            currentData.copy(
-                turns = currentData.turns.toMutableList(),
-                turnTranscriptions = currentData.turnTranscriptions.toMutableMap(),
-                callStartAtMs = currentData.callStartAtMs,
+            AgentReportData(
                 agentId = agentId,
                 reportedAtMs = reportedAtMs
             )
@@ -316,6 +322,7 @@ class LatencyMetricsManager internal constructor(
 
     companion object {
         const val LATENCY_METRICS_STORE_KEY = "latency_metrics_store"
+        const val LATENCY_REPORT_STORE_KEY = "latency_report_store"
 
         val shared: LatencyMetricsManager by lazy { LatencyMetricsManager() }
     }

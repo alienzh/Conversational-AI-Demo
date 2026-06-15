@@ -197,11 +197,12 @@ extension AgentSettingViewController: ChannelInfoViewDelegate {
     }
 
     func channelInfoViewDidTapDataReport(_ view: ChannelInfoView) {
-        guard let latestSession = LatencyMetricsManager.shared.fetchLatest() else {
+        guard let presetName = AppContext.settingManager().preset?.name, !presetName.isEmpty,
+              let latestReport = LatencyMetricsManager.shared.fetchReport(presetName: presetName) else {
             return
         }
 
-        guard let reportUrl = latestSession.resolvedReportUrl(baseUrl: AppContext.shared.latencyDataReportPageBaseUrl) else {
+        guard let reportUrl = latestReport.resolvedReportUrl(baseUrl: AppContext.shared.latencyDataReportPageBaseUrl) else {
             return
         }
 

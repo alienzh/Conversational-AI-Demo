@@ -358,14 +358,19 @@ class ChannelInfoView: UIView {
     }
 
     func updateDataReportState() {
-        let latestSession = LatencyMetricsManager.shared.fetchLatest()
+        let latestReport: AgentReportData?
+        if let presetName = AppContext.settingManager().preset?.name, !presetName.isEmpty {
+            latestReport = LatencyMetricsManager.shared.fetchReport(presetName: presetName)
+        } else {
+            latestReport = nil
+        }
         let detailText: String
         let detailColor: UIColor
         let canOpen: Bool
 
-        if let latestSession,
-           latestSession.isReportReady {
-            detailText = formattedReportTimestamp(from: latestSession.reportUploadedAt)
+        if let latestReport,
+           latestReport.resolvedReportUrl(baseUrl: AppContext.shared.latencyDataReportPageBaseUrl) != nil {
+            detailText = formattedReportTimestamp(from: latestReport.reportedAt)
             detailColor = UIColor.themColor(named: "ai_green6")
             canOpen = true
         } else {

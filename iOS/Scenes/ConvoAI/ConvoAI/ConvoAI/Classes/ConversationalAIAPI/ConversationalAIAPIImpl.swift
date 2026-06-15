@@ -560,7 +560,8 @@ extension ConversationalAIAPIImpl {
     }
     
     func writeLogToRTCSDK(log: String) {
-        config.rtcEngine?.writeLog(.info, content: log)
+        let escapedLog = log.replacingOccurrences(of: "%", with: "%%")
+        config.rtcEngine?.writeLog(.info, content: escapedLog)
     }
 
     private func queryAgentState(channelName: String) {
@@ -603,8 +604,7 @@ extension ConversationalAIAPIImpl {
 
             if let timestamp = timestamp {
                 shouldNotifyStateChange =
-                    turnId >= (currentStateChangeEvent?.turnId ?? 0) &&
-                    timestamp > (currentStateChangeEvent?.timestamp ?? 0)
+                    turnId >= (currentStateChangeEvent?.turnId ?? 0)
             } else {
                 shouldNotifyStateChange = currentStateChangeEvent == nil
             }

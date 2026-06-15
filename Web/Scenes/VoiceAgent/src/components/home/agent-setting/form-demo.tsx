@@ -53,7 +53,7 @@ import {
 import { ETranscriptHelperMode } from '@/conversational-ai-api/type'
 import { useIsDemoCalling } from '@/hooks/use-is-agent-calling'
 import { cn, isCN } from '@/lib/utils'
-import { useAgentSettingsStore, useGlobalStore } from '@/store'
+import { useAgentSettingsStore, useGlobalStore, useReportStore } from '@/store'
 import type { TAgentSettings } from '@/store/agent'
 import { useRTCStore } from '@/store/rtc'
 import type { IAgentPreset } from '@/type/agent'
@@ -81,6 +81,7 @@ export function AgentSettingsForm(props: {
     setIsPresetDigitalReminderIgnored,
     setShowSALSettingSidebar
   } = useGlobalStore()
+  const { sessionsByAgentId } = useReportStore()
 
   const { remote_rtc_uid } = useRTCStore()
 
@@ -220,6 +221,16 @@ export function AgentSettingsForm(props: {
       }
     }
   }, [avatarList])
+
+  const latestReportSession = React.useMemo(() => {
+    return Object.values(sessionsByAgentId)
+      .filter((session) => session.presetName === selectedPreset.name)
+      .sort(
+        (a, b) =>
+          Math.max(b.uploadedAt || 0, b.callStartAt) -
+          Math.max(a.uploadedAt || 0, a.callStartAt)
+      )[0]
+  }, [selectedPreset.name, sessionsByAgentId])
 
   return (
     <Form {...settingsForm}>
@@ -524,6 +535,26 @@ export function AgentSettingsForm(props: {
               </FormControl>
             </div>
           </InnerCard>
+        )}
+
+        {!disableFormMemo && (
+          <div className='flex items-center justify-between gap-2'>
+            <Label className='font-normal'>{t('report.title')}</Label>
+            {latestReportSession?.agentId ? (
+              <NextLink
+                href={`/reports/${latestReportSession.agentId}`}
+                className='flex items-center gap-1 text-[10px] text-icontext md:text-xs'
+              >
+                <span>{t('report.view')}</span>
+                <ChevronRight className='size-5' />
+              </NextLink>
+            ) : (
+              <div className='flex items-center gap-1 text-[10px] text-icontext-disabled md:text-xs'>
+                <span>{t('report.empty')}</span>
+                <ChevronRight className='size-5' />
+              </div>
+            )}
+          </div>
         )}
 
         <div className='mt-4 flex flex-col items-center justify-center'>
