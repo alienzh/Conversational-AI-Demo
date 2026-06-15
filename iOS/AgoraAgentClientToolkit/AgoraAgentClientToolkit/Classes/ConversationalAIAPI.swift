@@ -135,7 +135,7 @@ import AgoraRtmKit
     /// Image base64, The agent will use this base64 to identify the image.
     @objc public let base64: String?
 
-    init(uuid: String, url: String?, base64: String? = nil) {
+    @objc public init(uuid: String, url: String?, base64: String? = nil) {
         self.uuid = uuid
         self.url = url
         self.base64 = base64
@@ -991,7 +991,6 @@ public enum MessageType: String, CaseIterable {
     /// Call this method when you no longer need the ConversationalAI API.
     @objc func destroy()
 }
-
 
 
 

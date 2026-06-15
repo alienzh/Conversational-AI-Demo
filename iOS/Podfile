@@ -19,6 +19,7 @@ target 'Agent-global' do
   pod 'Common', :path => 'Common'
 
   # Agents
+  pod 'AgoraAgentClientToolkitTmpZW', :path => 'AgoraAgentClientToolkit'
   pod 'ConvoAI', :path => 'Scenes/ConvoAI/ConvoAI'
   pod 'IoT', :path => 'Scenes/ConvoAI/IoT'
   pod 'BLEManager', :path => 'Scenes/ConvoAI/BLEManager'
